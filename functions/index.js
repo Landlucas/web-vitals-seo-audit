@@ -19,17 +19,17 @@ exports.lh = functions
         return message
       })
       .catch(error => {
-        response.status(500).send(error)
+        response.status(500)
+        return error
       })
     response.send(message)
   })
 
 const runLighthouseReport = async url => {
-  // Use Puppeteer to launch headful Chrome and don't use its default 800x600 viewport.
+  // Use Puppeteer to launch Chrome
   const browser = await puppeteer.launch({
-    headless: false,
-    defaultViewport: null,
-  })
+    args: ["--show-paint-rects"]
+  });
 
   // Lighthouse will open the URL.
   const { lhr } = await lighthouse(url, {
@@ -38,9 +38,9 @@ const runLighthouseReport = async url => {
     logLevel: "info",
   })
 
-  await browser.close();
+  await browser.close()
 
   return `Lighthouse scores: ${Object.values(lhr.categories)
-    .map(c => `${c.title} ${c.score}`)
+    .map(c => `${c.title} ${c.score * 100}`)
     .join(", ")}`
 }
