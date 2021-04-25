@@ -1,9 +1,9 @@
 {
-  "name": "gatsby-starter-default",
+  "name": "web-vitals-seo-audit",
   "private": true,
-  "description": "A simple starter to get up and developing quickly with Gatsby",
+  "description": "",
   "version": "0.1.0",
-  "author": "Kyle Mathews <mathews.kyle@gmail.com>",
+  "author": "Lucas Land <land.lucas@outlook.com>",
   "dependencies": {
     "gatsby": "^3.3.1",
     "gatsby-plugin-gatsby-cloud": "^2.2.0",
@@ -20,6 +20,7 @@
     "react-helmet": "^6.1.0"
   },
   "devDependencies": {
+    "firebase-tools": "^9.10.0",
     "prettier": "2.2.1"
   },
   "keywords": [
@@ -39,7 +40,7 @@
     "type": "git",
     "url": "https://github.com/gatsbyjs/gatsby-starter-default"
   },
-  "bugs": {
-    "url": "https://github.com/gatsbyjs/gatsby/issues"
-  }
+  "workspaces": [
+    "functions"
+  ]
 }

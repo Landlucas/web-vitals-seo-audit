@@ -1,7 +1,7 @@
 module.exports = {
   siteMetadata: {
-    title: `Gatsby Default Starter`,
-    description: `Kick off your next, great Gatsby project with this default starter. This barebones starter ships with the main Gatsby configuration files you might need.`,
+    title: `Web App de Auditoria de Web Vitals e SEO`,
+    description: `Uma ferramenta simples e unificada que realiza auditorias de páginas na Web.`,
     author: `@gatsbyjs`,
   },
   plugins: [
