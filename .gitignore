@@ -70,3 +70,6 @@ public
 !.yarn/sdks
 !.yarn/versions
 .yarn-integrity
+
+# Firebase
+service-account-key.json
