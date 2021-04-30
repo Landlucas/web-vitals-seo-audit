@@ -4,11 +4,11 @@ const { URL } = require("url")
 const puppeteer = require("puppeteer")
 const lighthouse = require("lighthouse")
 const admin = require("firebase-admin")
-const serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT_KEY_PATH)
+const serviceAccount = require('./service-account-key.json')
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: process.env.FIREBASE_DATABASE_URL,
+  databaseURL: functions.config().database.url,
 })
 const db = admin.database()
 
