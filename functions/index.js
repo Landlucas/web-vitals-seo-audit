@@ -1,4 +1,3 @@
-require("dotenv").config()
 const functions = require("firebase-functions")
 const { URL } = require("url")
 const puppeteer = require("puppeteer")
@@ -8,7 +7,7 @@ const serviceAccount = require('./service-account-key.json')
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: functions.config().database.url,
+  databaseURL: "https://web-vitals-seo-audit-default-rtdb.firebaseio.com/",
 })
 const db = admin.database()
 
@@ -22,9 +21,8 @@ const runtimeOpts = {
 
 exports.lh = functions
   .runWith(runtimeOpts)
-  .https.onRequest(async (request, response) => {
+  .https.onRequest((request, response) => {
     response.status(404)
-    let responseBody = "Nothing here."
 
     // Create a report
     if (request.method === "POST") {
@@ -32,15 +30,15 @@ exports.lh = functions
         response.status(400).send("No URL sent for report.")
         return
       }
-      responseBody = await runLighthouseReport(request.body.url)
+      runLighthouseReport(request.body.url)
         .then(message => {
-          response.status(200)
-          return message
+          response.status(200).send(message)
+          return
         })
         .catch(error => {
-          response.status(500)
-          return `${error.name}: ${error.message} at ${error.stack}`
+          response.status(500).send(`${error.name}: ${error.message} at ${error.stack}`)
         })
+      return  
     }
 
     // Get a report
@@ -49,20 +47,20 @@ exports.lh = functions
         response.status(400).send("No URL sent for generating a report.")
         return
       }
-      responseBody = await getLighthouseReport(request.query.url)
+      getLighthouseReport(request.query.url)
         .then(snapshot => {
           if (snapshot.exists()) {
-            response.status(200)
-            return snapshot.val()
+            response.status(200).send(snapshot.val())
+            return
           } else {
-            response.status(404)
-            return "No report was found for this URL."
+            response.status(404).send("No report was found for this URL.")
+            return
           }
         })
         .catch(error => {
-          response.status(500)
-          return `${error.name}: ${error.message} at ${error.stack}`
+          response.status(500).send(`${error.name}: ${error.message} at ${error.stack}`)
         })
+      return
     }
 
     // Delete a report
@@ -71,15 +69,14 @@ exports.lh = functions
         response.status(400).send("No URL sent for generating a report.")
         return
       }
-      responseBody = await deleteLighthouseReport(request.body.url).catch(
+      deleteLighthouseReport(request.body.url).catch(
         error => {
-          response.status(500)
-          return `${error.name}: ${error.message} at ${error.stack}`
+          response.status(500).send(`${error.name}: ${error.message} at ${error.stack}`)
         }
       )
+      return
     }
 
-    response.send(responseBody)
   })
 
 /**
