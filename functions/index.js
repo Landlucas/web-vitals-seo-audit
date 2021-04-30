@@ -32,16 +32,15 @@ exports.lh = functions
         response.status(400).send("No URL sent for report.")
         return
       }
-      responseBody = await runLighthouseReport(request.body.url).then(
-        message => {
+      responseBody = await runLighthouseReport(request.body.url)
+        .then(message => {
           response.status(200)
           return message
-        }
-      )
-      .catch(error => {
-        response.status(500)
-        return `${error.name}: ${error.message} at ${error.stack}`
-      })
+        })
+        .catch(error => {
+          response.status(500)
+          return `${error.name}: ${error.message} at ${error.stack}`
+        })
     }
 
     // Get a report
@@ -50,8 +49,8 @@ exports.lh = functions
         response.status(400).send("No URL sent for generating a report.")
         return
       }
-      responseBody = await getLighthouseReport(request.query.url).then(
-        snapshot => {
+      responseBody = await getLighthouseReport(request.query.url)
+        .then(snapshot => {
           if (snapshot.exists()) {
             response.status(200)
             return snapshot.val()
@@ -59,21 +58,35 @@ exports.lh = functions
             response.status(404)
             return "No report was found for this URL."
           }
-        }
-      )
-      .catch(error => {
-        response.status(500)
-        return `${error.name}: ${error.message} at ${error.stack}`
-      })
+        })
+        .catch(error => {
+          response.status(500)
+          return `${error.name}: ${error.message} at ${error.stack}`
+        })
     }
 
-    // TODO: Update a report with PUT
-
-    // TODO: Delete a report with DELETE
+    // Delete a report
+    if (request.method === "DELETE") {
+      if (!request.body.url) {
+        response.status(400).send("No URL sent for generating a report.")
+        return
+      }
+      responseBody = await deleteLighthouseReport(request.body.url).catch(
+        error => {
+          response.status(500)
+          return `${error.name}: ${error.message} at ${error.stack}`
+        }
+      )
+    }
 
     response.send(responseBody)
   })
 
+/**
+ * Runs a Lighthouse report and saves on DB
+ * @param {String} url 
+ * @returns {String}
+ */
 const runLighthouseReport = async url => {
   // Use Puppeteer to launch Chrome
   const browser = await puppeteer.launch({
@@ -101,10 +114,37 @@ const runLighthouseReport = async url => {
   return categories
 }
 
+/**
+ * Get a report from DB
+ * @param {String} url 
+ * @returns {admin.database.DataSnapshot}
+ */
 const getLighthouseReport = async url => {
   const reportRef = db.ref(
     `reports/${encodeURIComponent(url).replace(/\./g, "dot")}`
   )
-  const snapshot = await reportRef.once("value");
-  return snapshot;
+  const snapshot = await reportRef.once("value")
+  return snapshot
+}
+
+/**
+ * Delete a report from DB
+ * @param {String} url 
+ * @returns {String}
+ */
+const deleteLighthouseReport = async url => {
+  const parentRef = db.ref(
+    `reports`
+  )
+  const parentSnapshot = await parentRef.once("value")
+  const reportExists = parentSnapshot.hasChild(encodeURIComponent(url).replace(/\./g, "dot"))
+  if (reportExists) {
+    const reportRef = db.ref(
+      `reports/${encodeURIComponent(url).replace(/\./g, "dot")}`
+    )
+    await reportRef.remove()
+    return `Report from url ${url} removed successfully.`
+  } else {
+    return `No report exists with url "${url}".`
+  }
 }
