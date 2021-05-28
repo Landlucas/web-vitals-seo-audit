@@ -5,7 +5,13 @@ import Layout from "../components/layout"
 import Seo from "../components/seo"
 import Masthead from "../components/masthead"
 import { makeStyles } from "@material-ui/core/styles"
-import { Box, Button, Container, TextField } from "@material-ui/core"
+import {
+  Box,
+  Button,
+  Container,
+  TextField,
+  CircularProgress,
+} from "@material-ui/core"
 
 import { useStaticQuery, graphql } from "gatsby"
 
@@ -38,17 +44,92 @@ const IndexPage = () => {
   `)
   const data = query.allDataYaml.edges[0].node
   const [url, setUrl] = useState("")
-  const handleSubmit = event => {
+  const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState(false)
+  const [result, setResult] = useState("")
+  let reportFound = false
+
+  const handleSubmit = async event => {
     event.preventDefault()
-    if (url.length > 0) {
-      // TODO: Fetch with GET to get cached results
-      fetch(`https://us-central1-web-vitals-seo-audit.cloudfunctions.net/lh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url }),
+    if (url.length > 0 && !loading) {
+      reportFound = false
+      setResult("")
+      setLoading(true)
+      getReport().then(response => {
+        if (reportFound) {
+          setResult(JSON.stringify(response))
+          setSuccess(true)
+          setLoading(false)
+        } else {
+          newReport().then(response => {
+            if (reportFound) {
+              setSuccess(true)
+              setResult(JSON.stringify(response))
+            } else {
+              setSuccess(false)
+            }
+            setLoading(false)
+          })
+        }
       })
     }
   }
+
+  const getReport = async () => {
+    return await fetch(
+      `http://127.0.0.1:5001/web-vitals-seo-audit/us-central1/lh?url=${url}`
+    )
+      .then(response => {
+        if (response.status === 200) {
+          reportFound = true
+          return response.json()
+        } else {
+          return response.text()
+        }
+      })
+      .then(response => {
+        if (reportFound) {
+          return JSON.stringify(response)
+        } else {
+          console.warn(response)
+        }
+      })
+      .catch(error => {
+        setSuccess(false)
+        console.error(error)
+      })
+  }
+
+  const newReport = async () => {
+    return await fetch(
+      `http://127.0.0.1:5001/web-vitals-seo-audit/us-central1/lh`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: url }),
+      }
+    )
+      .then(response => {
+        if (response.status === 200) {
+          reportFound = true
+          return response.json()
+        } else {
+          return response.text()
+        }
+      })
+      .then(response => {
+        if (reportFound) {
+          return JSON.stringify(response)
+        } else {
+          console.error(response)
+        }
+      })
+      .catch(error => {
+        setSuccess(false)
+        console.error(error)
+      })
+  }
+
   return (
     <Layout>
       <Seo title="Home" />
@@ -71,11 +152,16 @@ const IndexPage = () => {
                 color="primary"
                 size="large"
                 type="submit"
+                disabled={loading}
               >
                 Analisar
               </Button>
             </Box>
           </form>
+        </Box>
+        <Box my={4} display="flex" justifyContent="center">
+          {loading && <CircularProgress />}
+          {success && !loading && result}
         </Box>
       </Container>
     </Layout>

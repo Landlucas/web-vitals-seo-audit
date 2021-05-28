@@ -2,8 +2,9 @@ const functions = require("firebase-functions")
 const { URL } = require("url")
 const puppeteer = require("puppeteer")
 const lighthouse = require("lighthouse")
+const cors = require("cors")({ origin: true })
 const admin = require("firebase-admin")
-const serviceAccount = require('./service-account-key.json')
+const serviceAccount = require("./service-account-key.json")
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -22,66 +23,76 @@ const runtimeOpts = {
 exports.lh = functions
   .runWith(runtimeOpts)
   .https.onRequest((request, response) => {
-    response.status(404)
+    cors(request, response, () => {
+      response.status(404)
+      response.set("Access-Control-Allow-Origin", "*")
 
-    // Create a report
-    if (request.method === "POST") {
-      if (!request.body.url) {
-        response.status(400).send("No URL sent for report.")
-        return
-      }
-      runLighthouseReport(request.body.url)
-        .then(message => {
-          response.status(200).send(message)
+      console.log(request.method)
+
+      // Create a report
+      if (request.method === "POST") {
+        if (!request.body.url) {
+          response.status(400).send("No URL sent for report.")
           return
-        })
-        .catch(error => {
-          response.status(500).send(`${error.name}: ${error.message} at ${error.stack}`)
-        })
-      return  
-    }
-
-    // Get a report
-    if (request.method === "GET") {
-      if (!request.query.url) {
-        response.status(400).send("No URL sent for generating a report.")
-        return
-      }
-      getLighthouseReport(request.query.url)
-        .then(snapshot => {
-          if (snapshot.exists()) {
-            response.status(200).send(snapshot.val())
-            return
-          } else {
-            response.status(404).send("No report was found for this URL.")
-            return
-          }
-        })
-        .catch(error => {
-          response.status(500).send(`${error.name}: ${error.message} at ${error.stack}`)
-        })
-      return
-    }
-
-    // Delete a report
-    if (request.method === "DELETE") {
-      if (!request.body.url) {
-        response.status(400).send("No URL sent for generating a report.")
-        return
-      }
-      deleteLighthouseReport(request.body.url).catch(
-        error => {
-          response.status(500).send(`${error.name}: ${error.message} at ${error.stack}`)
         }
-      )
-      return
-    }
+        runLighthouseReport(request.body.url)
+          .then(message => {
+            response.status(200).send(message)
+            return
+          })
+          .catch(error => {
+            response
+              .status(500)
+              .send(`${error.name}: ${error.message} at ${error.stack}`)
+          })
+        return
+      }
 
+      // Get a report
+      if (request.method === "GET") {
+        if (!request.query.url) {
+          response.status(400).send("No URL sent for generating a report.")
+          return
+        }
+        getLighthouseReport(request.query.url)
+          .then(snapshot => {
+            if (snapshot.exists()) {
+              response.status(200).send(snapshot.val())
+              return
+            } else {
+              response.status(404).send("No report was found for this URL.")
+              return
+            }
+          })
+          .catch(error => {
+            response
+              .status(500)
+              .send(`${error.name}: ${error.message} at ${error.stack}`)
+          })
+        return
+      }
+
+      // Delete a report
+      if (request.method === "DELETE") {
+        if (!request.body.url) {
+          response.status(400).send("No URL sent for generating a report.")
+          return
+        }
+        deleteLighthouseReport(request.body.url).catch(error => {
+          response
+            .status(500)
+            .send(`${error.name}: ${error.message} at ${error.stack}`)
+        })
+        return
+      }
+
+      response.status(400).send("Bad request.")
+    })
   })
 
 /**
  * Runs a Lighthouse report and saves on DB
- * @param {String} url 
+ * @param {String} url
  * @returns {String}
  */
 const runLighthouseReport = async url => {
@@ -94,6 +105,8 @@ const runLighthouseReport = async url => {
   const { lhr } = await lighthouse(url, {
     port: new URL(browser.wsEndpoint()).port,
     output: "json",
+    onlyCategories: ["performance"],
+    logLevel: "info",
   })
 
   await browser.close()
@@ -102,18 +115,30 @@ const runLighthouseReport = async url => {
   const reportsRef = db.ref(
     `reports/${encodeURIComponent(url).replace(/\./g, "dot")}`
   )
-  const categories = Object.fromEntries(
-    Object.values(lhr.categories).map(({ title, score }) => [title, score])
+  const usedAudits = [
+    "first-contentful-paint",
+    "speed-index",
+    "largest-contentful-paint",
+    "interactive",
+    "cumulative-layout-shift",
+    "total-blocking-time",
+  ]
+  const audits = Object.fromEntries(
+    Object.values(lhr.audits)
+      .filter(({ id }) => {
+        return usedAudits.some(auditId => auditId === id)
+      })
+      .map(({ title, displayValue }) => [title, displayValue])
   )
-  reportsRef.set(categories)
+  reportsRef.set(audits)
 
   // Return message
-  return categories
+  return JSON.stringify(audits)
 }
 
 /**
  * Get a report from DB
- * @param {String} url 
+ * @param {String} url
  * @returns {admin.database.DataSnapshot}
  */
 const getLighthouseReport = async url => {
@@ -126,15 +151,15 @@ const getLighthouseReport = async url => {
 
 /**
  * Delete a report from DB
- * @param {String} url 
+ * @param {String} url
  * @returns {String}
  */
 const deleteLighthouseReport = async url => {
-  const parentRef = db.ref(
-    `reports`
-  )
+  const parentRef = db.ref(`reports`)
   const parentSnapshot = await parentRef.once("value")
-  const reportExists = parentSnapshot.hasChild(encodeURIComponent(url).replace(/\./g, "dot"))
+  const reportExists = parentSnapshot.hasChild(
+    encodeURIComponent(url).replace(/\./g, "dot")
+  )
   if (reportExists) {
     const reportRef = db.ref(
       `reports/${encodeURIComponent(url).replace(/\./g, "dot")}`
