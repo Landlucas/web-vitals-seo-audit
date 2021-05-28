@@ -122,16 +122,14 @@ const runLighthouseReport = async url => {
     "total-blocking-time",
   ]
 
-  let audits = []
+  let audits = {}
   for (usedAuditId of usedAudits) {
-    audits.push(lhr.audits[usedAuditId])
+    audits[usedAuditId] = lhr.audits[usedAuditId]
   }
-  const toObject = (arr, key) => arr.reduce((a, b) => ({ ...a, [b[key]]: b }), {});
-  auditsObj = toObject(audits,'id');
-  reportsRef.set(JSON.parse(JSON.stringify(auditsObj)))
+  reportsRef.set(JSON.parse(JSON.stringify(audits)))
 
   // Return message
-  return JSON.stringify(toObject(audits,'id'))
+  return JSON.stringify(audits)
 }
 
 /**
