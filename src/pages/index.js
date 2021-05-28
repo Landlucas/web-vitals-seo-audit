@@ -4,6 +4,7 @@ import { useState } from "react"
 import Layout from "../components/layout"
 import Seo from "../components/seo"
 import Masthead from "../components/masthead"
+import Metrics from "../components/metrics"
 import { makeStyles } from "@material-ui/core/styles"
 import {
   Box,
@@ -46,25 +47,25 @@ const IndexPage = () => {
   const [url, setUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [result, setResult] = useState("")
+  const [result, setResult] = useState({})
   let reportFound = false
 
   const handleSubmit = async event => {
     event.preventDefault()
     if (url.length > 0 && !loading) {
       reportFound = false
-      setResult("")
+      setResult({})
       setLoading(true)
       getReport().then(response => {
         if (reportFound) {
-          setResult(JSON.stringify(response))
+          setResult(response)
           setSuccess(true)
           setLoading(false)
         } else {
           newReport().then(response => {
             if (reportFound) {
               setSuccess(true)
-              setResult(JSON.stringify(response))
+              setResult(response)
             } else {
               setSuccess(false)
             }
@@ -76,9 +77,7 @@ const IndexPage = () => {
   }
 
   const getReport = async () => {
-    return await fetch(
-      `http://127.0.0.1:5001/web-vitals-seo-audit/us-central1/lh?url=${url}`
-    )
+    return await fetch(`${process.env.GATSBY_LHR_URL}?url=${url}`)
       .then(response => {
         if (response.status === 200) {
           reportFound = true
@@ -89,7 +88,7 @@ const IndexPage = () => {
       })
       .then(response => {
         if (reportFound) {
-          return JSON.stringify(response)
+          return response
         } else {
           console.warn(response)
         }
@@ -101,14 +100,11 @@ const IndexPage = () => {
   }
 
   const newReport = async () => {
-    return await fetch(
-      `http://127.0.0.1:5001/web-vitals-seo-audit/us-central1/lh`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url }),
-      }
-    )
+    return await fetch(`${process.env.GATSBY_LHR_URL}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url }),
+    })
       .then(response => {
         if (response.status === 200) {
           reportFound = true
@@ -119,7 +115,7 @@ const IndexPage = () => {
       })
       .then(response => {
         if (reportFound) {
-          return JSON.stringify(response)
+          return response
         } else {
           console.error(response)
         }
@@ -134,8 +130,8 @@ const IndexPage = () => {
     <Layout>
       <Seo title="Home" />
       <Masthead data={data.masthead} />
-      <Container maxWidth="md">
-        <Box my={4}>
+      <Box py={5} bgcolor="background.secondary">
+        <Container maxWidth="md" bgcolor="primary.main">
           <form onSubmit={handleSubmit}>
             <Box display="flex" justifyContent="center">
               <TextField
@@ -158,12 +154,14 @@ const IndexPage = () => {
               </Button>
             </Box>
           </form>
-        </Box>
-        <Box my={4} display="flex" justifyContent="center">
-          {loading && <CircularProgress />}
-          {success && !loading && result}
-        </Box>
-      </Container>
+          {loading && (
+            <Box mt={4} display="flex" justifyContent="center">
+              <CircularProgress />
+            </Box>
+          )}
+          {success && !loading && result && <Metrics items={Object.values(result)} />}
+        </Container>
+      </Box>
     </Layout>
   )
 }

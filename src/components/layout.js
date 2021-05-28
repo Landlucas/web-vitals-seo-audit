@@ -8,7 +8,9 @@
 import * as React from "react"
 import PropTypes from "prop-types"
 import { useStaticQuery, graphql } from "gatsby"
+import theme from "../theme"
 
+import { ThemeProvider } from '@material-ui/core/styles';
 import Header from "./header"
 import Footer from "./footer"
 
@@ -24,11 +26,11 @@ const Layout = ({ children }) => {
   `)
 
   return (
-    <>
+    <ThemeProvider theme={theme}>
       <Header siteTitle={data.site.siteMetadata?.title || `Title`} />
       <main>{children}</main>
       <Footer siteTitle={data.site.siteMetadata?.title || `Title`} />
-    </>
+    </ThemeProvider>
   )
 }
 

@@ -7,7 +7,7 @@ import Typography from "@material-ui/core/Typography"
 const Footer = ({ siteTitle }) => (
   <footer>
     <Container maxWidth="lg">
-      <Box my={8} textAlign="center">
+      <Box my={6} textAlign="center">
         <Typography variant="body2" component="span" gutterBottom>
           © {new Date().getFullYear()} {siteTitle}
         </Typography>

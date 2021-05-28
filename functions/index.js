@@ -27,8 +27,6 @@ exports.lh = functions
       response.status(404)
       response.set("Access-Control-Allow-Origin", "*")
 
-      console.log(request.method)
-
       // Create a report
       if (request.method === "POST") {
         if (!request.body.url) {
@@ -123,17 +121,17 @@ const runLighthouseReport = async url => {
     "cumulative-layout-shift",
     "total-blocking-time",
   ]
-  const audits = Object.fromEntries(
-    Object.values(lhr.audits)
-      .filter(({ id }) => {
-        return usedAudits.some(auditId => auditId === id)
-      })
-      .map(({ title, displayValue }) => [title, displayValue])
-  )
-  reportsRef.set(audits)
+
+  let audits = []
+  for (usedAuditId of usedAudits) {
+    audits.push(lhr.audits[usedAuditId])
+  }
+  const toObject = (arr, key) => arr.reduce((a, b) => ({ ...a, [b[key]]: b }), {});
+  auditsObj = toObject(audits,'id');
+  reportsRef.set(JSON.parse(JSON.stringify(auditsObj)))
 
   // Return message
-  return JSON.stringify(audits)
+  return JSON.stringify(toObject(audits,'id'))
 }
 
 /**

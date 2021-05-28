@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "author": "Lucas Land <land.lucas@outlook.com>",
   "dependencies": {
+    "@fontsource/roboto": "^4.4.0",
     "@material-ui/core": "^4.11.4",
     "gatsby": "^3.3.1",
     "gatsby-plugin-gatsby-cloud": "^2.2.0",
@@ -14,7 +15,6 @@
     "gatsby-plugin-react-helmet": "^4.2.0",
     "gatsby-plugin-sharp": "^3.2.1",
     "gatsby-source-filesystem": "^3.2.0",
-    "gatsby-theme-material-ui": "^2.0.1",
     "gatsby-transformer-sharp": "^3.2.0",
     "gatsby-transformer-yaml": "^3.6.0",
     "prop-types": "^15.7.2",
