@@ -12,7 +12,14 @@ import {
   Container,
   TextField,
   CircularProgress,
+  IconButton,
+  Collapse,
 } from "@material-ui/core"
+import { Close } from '@material-ui/icons';
+import { Alert, AlertTitle } from '@material-ui/lab';
+
+import { getLhReport, newLhReport } from "../utils/lh-reports"
+import { newMozReport } from "../utils/moz-reports"
 
 import { useStaticQuery, graphql } from "gatsby"
 
@@ -47,83 +54,54 @@ const IndexPage = () => {
   const [url, setUrl] = useState("")
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [invalid, setInvalid] = useState(false)
+  const [error, setError] = useState(false)
   const [result, setResult] = useState({})
-  let reportFound = false
 
   const handleSubmit = async event => {
     event.preventDefault()
+    setError(false)
+    setInvalid(false)
     if (url.length > 0 && !loading) {
-      reportFound = false
       setResult({})
       setLoading(true)
-      getReport().then(response => {
-        if (reportFound) {
-          setResult(response)
+      let lhReport = await getLhReport(url)
+      if (lhReport.error) {
+        setSuccess(false)
+        setError(true)
+      } else if (lhReport.found) {
+        setResult(lhReport.data)
+        setSuccess(true)
+      } else {
+        lhReport = await newLhReport(url)
+        if (lhReport.error) {
+          setSuccess(false)
+          setError(true)
+        } else if (lhReport.found) {
           setSuccess(true)
-          setLoading(false)
+          setResult(lhReport.data)
         } else {
-          newReport().then(response => {
-            if (reportFound) {
-              setSuccess(true)
-              setResult(response)
-            } else {
-              setSuccess(false)
-            }
-            setLoading(false)
+          setInvalid(true)
+          setSuccess(false)
+        }
+      }
+      if (lhReport.found) {
+        let mozReport = await newMozReport(url);
+        if (mozReport.error) {
+          setSuccess(false)
+          setError(true)
+        } else if (mozReport.found) {
+          setResult({
+            ...lhReport.data,
+            ...mozReport.data
           })
+        } else {
+          setSuccess(false)
+          setInvalid(true)
         }
-      })
+      }
+      setLoading(false)
     }
-  }
-
-  const getReport = async () => {
-    return await fetch(`${process.env.GATSBY_LHR_URL}?url=${url}`)
-      .then(response => {
-        if (response.status === 200) {
-          reportFound = true
-          return response.json()
-        } else {
-          return response.text()
-        }
-      })
-      .then(response => {
-        if (reportFound) {
-          return response
-        } else {
-          console.warn(response)
-        }
-      })
-      .catch(error => {
-        setSuccess(false)
-        console.error(error)
-      })
-  }
-
-  const newReport = async () => {
-    return await fetch(`${process.env.GATSBY_LHR_URL}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: url }),
-    })
-      .then(response => {
-        if (response.status === 200) {
-          reportFound = true
-          return response.json()
-        } else {
-          return response.text()
-        }
-      })
-      .then(response => {
-        if (reportFound) {
-          return response
-        } else {
-          console.error(response)
-        }
-      })
-      .catch(error => {
-        setSuccess(false)
-        console.error(error)
-      })
   }
 
   return (
@@ -160,6 +138,50 @@ const IndexPage = () => {
             </Box>
           )}
           {success && !loading && result && <Metrics items={Object.values(result)} />}
+          <Collapse in={error}>
+            <Box maxWidth={550} mt={3} mx="auto">
+              <Alert
+                severity="error"
+                action={
+                  <IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={() => {
+                      setError(false);
+                    }}
+                  >
+                    <Close fontSize="inherit" />
+                  </IconButton>
+                }
+              >
+                <AlertTitle>Oops!</AlertTitle>
+                Houve um erro inesperado ao analisar essa URL.
+              </Alert>
+            </Box>
+          </Collapse>
+          <Collapse in={invalid}>
+            <Box maxWidth={550} mt={3} mx="auto">
+              <Alert
+                severity="warning"
+                action={
+                  <IconButton
+                    aria-label="close"
+                    color="inherit"
+                    size="small"
+                    onClick={() => {
+                      setInvalid(false);
+                    }}
+                  >
+                    <Close fontSize="inherit" />
+                  </IconButton>
+                }
+              >
+                <AlertTitle>Oops!</AlertTitle>
+                A URL solicitada é inválida ou não existe.
+              </Alert>
+            </Box>
+          </Collapse>
         </Container>
       </Box>
     </Layout>

@@ -3,6 +3,7 @@ const { URL } = require("url")
 const puppeteer = require("puppeteer")
 const lighthouse = require("lighthouse")
 const cors = require("cors")({ origin: true })
+const fetch = require("node-fetch");
 const admin = require("firebase-admin")
 const serviceAccount = require("./service-account-key.json")
 
@@ -49,7 +50,7 @@ exports.lh = functions
       // Get a report
       if (request.method === "GET") {
         if (!request.query.url) {
-          response.status(400).send("No URL sent for generating a report.")
+          response.status(400).send("No URL sent for generating a lighthouse report.")
           return
         }
         getLighthouseReport(request.query.url)
@@ -73,7 +74,7 @@ exports.lh = functions
       // Delete a report
       if (request.method === "DELETE") {
         if (!request.body.url) {
-          response.status(400).send("No URL sent for generating a report.")
+          response.status(400).send("No URL sent for generating a lighthouse report.")
           return
         }
         deleteLighthouseReport(request.body.url).catch(error => {
@@ -84,7 +85,55 @@ exports.lh = functions
         return
       }
 
-      response.status(400).send("Bad request.")
+      response.status(400).send("Bad request.").end()
+    })
+  })
+
+exports.moz = functions
+  .runWith(runtimeOpts)
+  .https.onRequest((request, response) => {
+    cors(request, response, () => {
+      response.status(404)
+      response.set("Access-Control-Allow-Origin", "*")
+
+      // Create a moz report
+      if (request.method === "POST") {
+        if (!request.body.url) {
+          response.status(400).send("No URL sent for moz report.")
+          return
+        }
+        getMozUrlMetrics(request.body.url)
+          .then(metrics => {
+            if (metrics.results) {
+              const message = { 
+                "page-authority": {
+                  id: "page-authority",
+                  displayValue: metrics.results[0].page_authority,
+                  title: "Page Authority (PA)",
+                  description: "Page Authority (PA) is a score developed by Moz that predicts how well a specific page will rank on search engine result pages (SERP)",
+                },
+                "domain-authority": {
+                  id: "domain-authority",
+                  displayValue: metrics.results[0].domain_authority,
+                  title: "Domain Authority (DA)",
+                  description: "Domain Authority (DA) is a search engine ranking score developed by Moz that predicts how likely a website is to rank in search engine result pages (SERPs)",
+                },
+              }
+              response.status(200).send(message)
+            } else {
+              response.status(400).send(metrics)
+            }
+            return
+          })
+          .catch(error => {
+            response
+              .status(500)
+              .send(`${error.name}: ${error.message} at ${error.stack}`)
+          })
+        return
+      }
+
+      response.status(400).send("Bad request.").end()
     })
   })
 
@@ -165,4 +214,19 @@ const deleteLighthouseReport = async url => {
   } else {
     return `No report exists with url "${url}".`
   }
+}
+
+const getMozUrlMetrics = async url => {
+  return await fetch(`https://lsapi.seomoz.com/v2/url_metrics`, {
+    method: "POST",
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": "Basic " + Buffer.from(functions.config().moz.id + ":" + functions.config().moz.key).toString('base64'),
+    },
+    mode: "no-cors",
+    body: JSON.stringify({ targets: [url] }),
+  })
+  .then(response => {
+    return response.json()
+  })
 }

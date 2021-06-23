@@ -75,3 +75,4 @@ public
 service-account-key.json
 .firebase/
 .firebase/*
+functions/.runtimeconfig.json
