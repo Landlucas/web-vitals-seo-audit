@@ -109,12 +109,14 @@ exports.moz = functions
                 "page-authority": {
                   id: "page-authority",
                   displayValue: metrics.results[0].page_authority,
+                  score: -1,
                   title: "Page Authority (PA)",
                   description: "Page Authority (PA) is a score developed by Moz that predicts how well a specific page will rank on search engine result pages (SERP)",
                 },
                 "domain-authority": {
                   id: "domain-authority",
                   displayValue: metrics.results[0].domain_authority,
+                  score: -1,
                   title: "Domain Authority (DA)",
                   description: "Domain Authority (DA) is a search engine ranking score developed by Moz that predicts how likely a website is to rank in search engine result pages (SERPs)",
                 },

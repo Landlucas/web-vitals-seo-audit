@@ -12,6 +12,11 @@ const theme = createMuiTheme({
       main: '#fff',
       secondary: '#f8f9fa',
     },
+    text: {
+      fail: '#e53935',
+      average: '#fb8c00',
+      pass: '#18b663',
+    }
   },
   typography: {
     h1: {
