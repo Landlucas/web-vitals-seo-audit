@@ -14,7 +14,8 @@ jobs:
         uses: SpicyPizza/create-envfile@v1
         with:
           envkey_GATSBY_LHR_URL: ${{ secrets.GATSBY_LHR_URL }}
-          file_name: .env  
+          envkey_GATSBY_MOZ_URL: ${{ secrets.GATSBY_MOZ_URL }}
+          file_name: .env.production  
       - name: Install Dependencies
         run: yarn
       - name: Build

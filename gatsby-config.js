@@ -1,3 +1,7 @@
+require("dotenv").config({
+  path: `.env.${process.env.NODE_ENV}`,
+})
+
 module.exports = {
   siteMetadata: {
     title: `Web App de Auditoria de Web Vitals e SEO`,
@@ -5,6 +9,9 @@ module.exports = {
     author: `@gatsbyjs`,
   },
   plugins: [
+    {
+      resolve: 'gatsby-plugin-material-ui',
+    },
     `gatsby-plugin-react-helmet`,
     `gatsby-plugin-image`,
     {
