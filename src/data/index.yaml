@@ -1,0 +1,7 @@
+slug: home
+masthead:
+  title: Auditoria de Web Vitals e SEO
+  description: Uma ferramenta simples e unificada que realiza auditorias de páginas na Web.
+  image:
+    src: "../images/intro-illustration.svg"
+    alt: Imagem decorativa de introdução
